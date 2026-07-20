@@ -1,0 +1,160 @@
+# ============================================================
+# LONGIN SANCTUARY — .gitignore
+# ============================================================
+
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+!.env.example
+
+# ── Node.js / Next.js ───────────────────────────────────────
+node_modules/
+.next/
+out/
+.nuxt/
+dist/
+.cache/
+.parcel-cache/
+.turbo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm/
+
+# ── AI Models & Weights (LARGE FILES) ───────────────────────
+# Never commit model weights to git — use model registry instead
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.gguf
+*.ggml
+*.q4_0
+*.q4_1
+*.q8_0
+models/
+checkpoints/
+loras/
+embeddings/
+vae/
+clip/
+unet/
+controlnet/
+ipadapter/
+upscalers/
+
+# ── ComfyUI specific ────────────────────────────────────────
+comfyui/input/
+comfyui/output/
+comfyui/temp/
+comfyui/models/
+comfyui/custom_nodes/ComfyUI-Manager/
+comfyui/user/
+
+# ── Generated media ─────────────────────────────────────────
+output/
+generated/
+*.mp4
+*.webm
+*.avi
+*.mov
+# Keep sample outputs (small) if explicitly added:
+!docs/samples/*.jpg
+!docs/samples/*.png
+
+# ── Databases & Secrets ─────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+# Redis dump
+dump.rdb
+# Qdrant data
+qdrant_storage/
+postgres_data/
+
+# ── Docker ──────────────────────────────────────────────────
+docker/secrets/
+.docker/
+
+# ── IDE & OS ────────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.tmp
+
+# ── Logs ────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+
+# ── Testing ─────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ── Certificates & Keys ─────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+config/secrets.yml
+config/secrets.yaml
+
+# ── Cluster agent data ──────────────────────────────────────
+# Local node registration files (contain IP/hardware info)
+.node_config.json
+cluster_state/
+
+# ── Keep these ──────────────────────────────────────────────
+!.gitignore
+!.env.example
+!comfyui_workflows/*.json
+!docs/
