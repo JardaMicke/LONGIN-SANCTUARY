@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "title": "LONGIN SANCTUARY — LoRA Training Workflow",
+    "description": "LoRA Fine-tuning workflow template using AI-Toolkit",
+    "version": "1.0"
+  },
+  "1": {
+    "class_type": "LoraTrainingConfig",
+    "_meta": {"title": "LoRA Training Configuration"},
+    "inputs": {
+      "base_model": "flux1-dev.safetensors",
+      "dataset_path": "uploads/CHARACTER_ID_PLACEHOLDER/",
+      "output_name": "CHARACTER_NAME_PLACEHOLDER",
+      "steps": 2000,
+      "learning_rate": 0.0001,
+      "batch_size": 1,
+      "resolution": 512,
+      "trigger_word": "ohwx",
+      "save_every": 500
+    }
+  },
+  "2": {
+    "class_type": "RunLoraTraining",
+    "_meta": {"title": "Execute LoRA Training"},
+    "inputs": {
+      "config": ["1", 0]
+    }
+  }
+}

@@ -20,6 +20,14 @@ async def lifespan(app: FastAPI):
     logger.info(f"🌟 Starting LONGIN SANCTUARY v{settings.APP_VERSION}")
     logger.info(f"   Node: {settings.NODE_NAME} | Role: {settings.NODE_ROLE}")
 
+    # Initialize databases on startup
+    try:
+        from config.database import init_db
+        await init_db()
+        logger.info("✅ Database tables initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize database: {e}")
+
     # Start network discovery if enabled
     if settings.CLUSTER_DISCOVERY_ENABLED:
         discovery = NetworkDiscovery()

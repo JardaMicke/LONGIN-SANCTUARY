@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "title": "LONGIN SANCTUARY — Start to End Video Interpolation",
+    "description": "Generate smooth video morphing between a start image and end image using FILM (Frame Interpolation)",
+    "version": "1.0"
+  },
+  "1": {
+    "class_type": "LoadImage",
+    "_meta": {"title": "Start Image"},
+    "inputs": {
+      "image": "START_IMAGE_PATH_PLACEHOLDER"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "_meta": {"title": "End Image"},
+    "inputs": {
+      "image": "END_IMAGE_PATH_PLACEHOLDER"
+    }
+  },
+  "3": {
+    "class_type": "FILM_VFI",
+    "_meta": {"title": "FILM Frame Interpolation"},
+    "inputs": {
+      "ckpt_name": "Film_net.onnx",
+      "clear_cache_after_n_frames": 10,
+      "multiplier": 8,
+      "images": ["1", 0],
+      "optional_image_to": ["2", 0]
+    }
+  },
+  "4": {
+    "class_type": "VHS_VideoCombine",
+    "_meta": {"title": "Video Combine"},
+    "inputs": {
+      "images": ["3", 0],
+      "frame_rate": 15,
+      "loop_count": 0,
+      "filename_prefix": "sanctuary/start_end_interpolate",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 18,
+      "save_metadata": true
+    }
+  }
+}

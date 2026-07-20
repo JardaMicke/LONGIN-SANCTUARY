@@ -1,0 +1,88 @@
+{
+  "_meta": {
+    "title": "LONGIN SANCTUARY — Text to Video (Character Consistency)",
+    "description": "T2V using WanVideo 2.1 / CogVideoX with IP-Adapter face lock on first frame",
+    "version": "1.0",
+    "models": ["WanVideo_2.1", "CogVideoX-5B"]
+  },
+  "1": {
+    "class_type": "WanVideoModelLoader",
+    "_meta": {"title": "WanVideo 2.1 Model"},
+    "inputs": {
+      "model": "WanVideo2.1_14B_T2V.safetensors",
+      "dtype": "bf16"
+    }
+  },
+  "2": {
+    "class_type": "WanVideoTextEncoder",
+    "_meta": {"title": "Text Encoder (T5 XXL)"},
+    "inputs": {
+      "positive_prompt": "POSITIVE_PROMPT_PLACEHOLDER",
+      "negative_prompt": "blurry, deformed, static, low motion, bad anatomy, extra limbs",
+      "clip_l": "clip_l.safetensors",
+      "t5xxl": "t5xxl_fp8_e4m3fn.safetensors"
+    }
+  },
+  "3": {
+    "class_type": "WanVideoEmptyEmbeds",
+    "_meta": {"title": "Video Latent"},
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "num_frames": 81,
+      "batch_size": 1
+    }
+  },
+  "4": {
+    "class_type": "IPAdapterFaceID",
+    "_meta": {"title": "IP-Adapter FaceID (First Frame Face Lock)"},
+    "inputs": {
+      "model": ["1", 0],
+      "ipadapter": "ip-adapter-faceid-plusv2_sdxl.bin",
+      "image": ["REFERENCE_IMAGE_NODE", 0],
+      "weight": 0.75,
+      "start_at": 0.0,
+      "end_at": 0.5,
+      "combine_embeds": "average"
+    }
+  },
+  "5": {
+    "class_type": "WanVideoSampler",
+    "_meta": {"title": "WanVideo Sampler"},
+    "inputs": {
+      "model": ["4", 0],
+      "positive": ["2", 0],
+      "negative": ["2", 1],
+      "latents": ["3", 0],
+      "steps": 30,
+      "cfg": 6.0,
+      "seed": -1,
+      "scheduler": "euler",
+      "shift": 8.0,
+      "force_offload": true
+    }
+  },
+  "6": {
+    "class_type": "WanVideoVAEDecode",
+    "_meta": {"title": "VAE Decode Video"},
+    "inputs": {
+      "samples": ["5", 0],
+      "vae": "wan_vae.safetensors",
+      "enable_vae_tiling": true
+    }
+  },
+  "7": {
+    "class_type": "VHS_VideoCombine",
+    "_meta": {"title": "Combine & Save Video"},
+    "inputs": {
+      "images": ["6", 0],
+      "frame_rate": 16,
+      "loop_count": 0,
+      "filename_prefix": "sanctuary/char_t2v",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 18,
+      "save_metadata": true
+    }
+  }
+}

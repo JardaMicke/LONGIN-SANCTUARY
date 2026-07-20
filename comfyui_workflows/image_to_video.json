@@ -1,0 +1,71 @@
+{
+  "_meta": {
+    "title": "LONGIN SANCTUARY — Image to Video",
+    "description": "I2V workflow using Stable Video Diffusion (SVD)",
+    "version": "1.0"
+  },
+  "1": {
+    "class_type": "ImageOnlyCheckpointLoader",
+    "_meta": {"title": "SVD Model Loader"},
+    "inputs": {
+      "ckpt_name": "svd_xt.safetensors"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "_meta": {"title": "Start Image"},
+    "inputs": {
+      "image": "START_IMAGE_PATH_PLACEHOLDER"
+    }
+  },
+  "3": {
+    "class_type": "SVD_img2vid_conditioning",
+    "_meta": {"title": "SVD Conditioning"},
+    "inputs": {
+      "video_frames": 25,
+      "motion_bucket_id": 127,
+      "fps": 12,
+      "augmentation_level": 0.0,
+      "clip_vision": ["1", 1],
+      "init_image": ["2", 0]
+    }
+  },
+  "4": {
+    "class_type": "KSampler",
+    "_meta": {"title": "KSampler"},
+    "inputs": {
+      "model": ["1", 0],
+      "positive": ["3", 0],
+      "negative": ["3", 1],
+      "latent_image": ["3", 2],
+      "seed": -1,
+      "steps": 20,
+      "cfg": 2.5,
+      "sampler_name": "euler",
+      "scheduler": "karras",
+      "denoise": 1.0
+    }
+  },
+  "5": {
+    "class_type": "VAEDecodeVideo",
+    "_meta": {"title": "VAE Decode Video"},
+    "inputs": {
+      "samples": ["4", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "6": {
+    "class_type": "VHS_VideoCombine",
+    "_meta": {"title": "Video Combine"},
+    "inputs": {
+      "images": ["5", 0],
+      "frame_rate": 12,
+      "loop_count": 0,
+      "filename_prefix": "sanctuary/i2v",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 18,
+      "save_metadata": true
+    }
+  }
+}

@@ -58,15 +58,19 @@ class STMManager:
         character_id: UUID,
         session_id: str,
         max_tokens: int | None = None,
+        model_name: str = "llama3.1",
+        system_prompt: str = "",
     ) -> list[dict]:
-        """
-        Get messages that fit within the token budget.
-        Phase 3: integrate tokenizer for precise counting.
-        """
+        """Get messages that fit within the token budget using TokenizerManager."""
+        from core.context.tokenizer_manager import TokenizerManager
         max_tokens = max_tokens or settings.STM_MAX_TOKENS
         messages = await self.get_history(character_id, session_id, limit=self.MAX_MESSAGES)
-        # TODO Phase 3: trim by token count using tokenizer_manager
-        return messages[-50:]  # Placeholder: return last 50
+        return TokenizerManager.trim_history(
+            messages=messages,
+            max_tokens=max_tokens,
+            model_name=model_name,
+            system_prompt=system_prompt,
+        )
 
     async def clear(self, character_id: UUID, session_id: str) -> None:
         redis: aioredis.Redis = await get_redis()

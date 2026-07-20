@@ -18,8 +18,13 @@ from core.memory.stm_manager import STMManager
 class LLMEngine:
     """Routes LLM requests to Ollama (local) or exo (distributed)."""
 
-    def _build_system_prompt(self, character, recent_messages: list[dict]) -> str:
-        """Assemble full system prompt from character persona."""
+    def _build_system_prompt(
+        self,
+        character,
+        recent_messages: list[dict],
+        relevant_memories: list[str] = None
+    ) -> str:
+        """Assemble full system prompt from character persona and relevant memories."""
         persona = character.persona or {}
         name = character.name
         backstory = persona.get("backstory", "")
@@ -35,6 +40,12 @@ class LLMEngine:
         )
         if override:
             base += f"\n\n{override}"
+
+        if relevant_memories:
+            base += "\n\nRelevant context from your memory:\n"
+            for mem in relevant_memories:
+                base += f"- {mem}\n"
+
         return base.strip()
 
     async def stream_response(
@@ -52,24 +63,42 @@ class LLMEngine:
             yield f"[Error: Character {character_id} not found]"
             return
 
+        model = character.llm_model or settings.DEFAULT_LLM_MODEL
+        system_prompt = self._build_system_prompt(character, [])
+
         # 2. Load conversation history
         stm = STMManager()
-        history = await stm.get_context_window(character_id, session_id)
+        history = await stm.get_context_window(
+            character_id=character_id,
+            session_id=session_id,
+            model_name=model,
+            system_prompt=system_prompt,
+        )
 
-        # 3. Save user message to STM
+        # 3. Retrieve relevant memories from RAG (Vector DB)
+        relevant_memories = []
+        try:
+            from core.memory.rag_engine import RAGEngine
+            rag = RAGEngine()
+            relevant_memories = await rag.search_relevant_memories(
+                character_id=character_id,
+                query=user_message,
+                top_k=settings.RAG_TOP_K
+            )
+        except Exception as e:
+            logger.warning(f"Failed to fetch memories from RAG: {e}")
+
+        # 4. Save user message to STM
         await stm.add_message(character_id, session_id, "user", user_message)
 
-        # 4. Choose model
-        model = character.llm_model or settings.DEFAULT_LLM_MODEL
-
         # 5. Build messages list for Ollama
-        system_prompt = self._build_system_prompt(character, history)
+        system_prompt = self._build_system_prompt(character, history, relevant_memories)
         messages = [{"role": "system", "content": system_prompt}]
         for msg in history:
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_message})
 
-        # 6. Stream from Ollama
+        # 5. Stream from Ollama
         ollama_url = settings.OLLAMA_PRIMARY_URL
         payload = {
             "model": model,

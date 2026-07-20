@@ -1,6 +1,6 @@
 """Character CRUD routes."""
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.database import get_session
@@ -8,6 +8,7 @@ from models.character import Character, CharacterCreate, CharacterUpdate, Charac
 from core.characters.character_manager import CharacterManager
 
 router = APIRouter()
+
 
 
 @router.get("/", response_model=list[CharacterRead])
@@ -66,10 +67,11 @@ async def delete_character(
 @router.post("/{character_id}/reference-images", status_code=202)
 async def upload_reference_images(
     character_id: UUID,
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     db: AsyncSession = Depends(get_session),
 ):
     """Upload reference images for face embedding and LoRA training."""
     manager = CharacterManager(db)
-    result = await manager.process_reference_images(character_id, files)
+    result = await manager.process_reference_images(character_id, files, background_tasks)
     return {"message": f"Processing {len(files)} images", "job_id": result}
