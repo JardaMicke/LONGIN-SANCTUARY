@@ -42,9 +42,11 @@ class ContentClassifier:
         if filter_level == "strict" and self.is_nsfw(text):
             return "[Obsah byl zablokován bezpečnostním filtrem]"
 
-        # For moderate, censor matches with asterisks
+        # For moderate, censor matches with asterisks by replacing the second character
         def censor(match):
             word = match.group(0)
-            return word[0] + "*" * (len(word) - 1)
+            if len(word) > 1:
+                return word[0] + "*" + word[2:]
+            return "*"
 
         return self._regex.sub(censor, text)
