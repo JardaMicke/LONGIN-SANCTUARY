@@ -1,0 +1,125 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL — Long-Term Memory ───────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: sanctuary-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-longin_sanctuary}
+      POSTGRES_USER: ${POSTGRES_USER:-sanctuary}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sanctuary}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sanctuary-net
+
+  # ── Redis — Short-Term Memory & Cache ───────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: sanctuary-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sanctuary-net
+
+  # ── Qdrant — Vector DB for RAG ──────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: sanctuary-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sanctuary-net
+
+  # ── Sanctuary Core API ──────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sanctuary-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      QDRANT_HOST: qdrant
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - ./models:/app/models
+      - ./output:/app/output
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    networks:
+      - sanctuary-net
+
+  # ── Sanctuary Frontend ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sanctuary-frontend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8000}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+    networks:
+      - sanctuary-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+
+networks:
+  sanctuary-net:
+    driver: bridge

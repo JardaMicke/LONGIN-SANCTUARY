@@ -1,0 +1,53 @@
+# ── Core framework ──────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-multipart==0.0.12
+
+# ── Database ────────────────────────────────────────────────
+sqlmodel==0.0.21
+asyncpg==0.29.0
+alembic==1.13.3
+psycopg2-binary==2.9.9
+
+# ── Redis (STM) ─────────────────────────────────────────────
+redis[asyncio]==5.1.1
+hiredis==3.0.0
+
+# ── Vector DB (RAG) ─────────────────────────────────────────
+qdrant-client==1.11.3
+
+# ── AI / ML ─────────────────────────────────────────────────
+httpx==0.27.2           # async HTTP (ComfyUI, Ollama)
+websockets==13.1        # ComfyUI WebSocket progress
+aiofiles==24.1.0
+
+# ── Tokenizers ──────────────────────────────────────────────
+tiktoken==0.8.0
+transformers==4.45.2
+tokenizers==0.20.3
+
+# ── Embeddings (RAG) ────────────────────────────────────────
+sentence-transformers==3.2.1
+numpy==1.26.4
+
+# ── Face Consistency ────────────────────────────────────────
+insightface==0.7.3
+onnxruntime==1.19.2
+
+# ── Image Processing ────────────────────────────────────────
+Pillow==10.4.0
+opencv-python-headless==4.10.0.84
+
+# ── Network Discovery ───────────────────────────────────────
+zeroconf==0.132.2
+psutil==6.0.0           # hardware monitoring
+
+# ── Utilities ───────────────────────────────────────────────
+python-jose[cryptography]==3.3.0   # JWT (age-check session)
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.1
+loguru==0.7.2
+tenacity==9.0.0         # retry logic
+anyio==4.6.2
