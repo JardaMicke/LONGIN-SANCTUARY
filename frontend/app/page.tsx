@@ -7,7 +7,7 @@ const API_BASE = "http://localhost:8000/api/v1";
 
 export default function DashboardSPA() {
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "characters" | "scenarios" | "chat" | "network" | "models" | "settings"
+    "dashboard" | "characters" | "scenarios" | "chat" | "network" | "models" | "comfyui" | "settings"
   >("dashboard");
 
   // --- Global State ---
@@ -104,6 +104,9 @@ export default function DashboardSPA() {
   const [nodeModels, setNodeModels] = useState<any[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [loadingModelName, setLoadingModelName] = useState<string | null>(null);
+
+  // --- ComfyUI State ---
+  const [selectedComfyNodeIP, setSelectedComfyNodeIP] = useState<string | null>(null);
   // --- Scenario Creation Form State ---
   const [scenForm, setScenForm] = useState({
     title: "",
@@ -588,6 +591,7 @@ export default function DashboardSPA() {
               { id: "chat", label: "Chat", icon: "💬" },
               { id: "network", label: "Lokální Síť", icon: "🌐" },
               { id: "models", label: "Modely", icon: "🧠" },
+              { id: "comfyui", label: "ComfyUI", icon: "🎨" },
               { id: "settings", label: "Nastavení", icon: "⚙️" },
             ].map((item) => (
               <button
@@ -645,6 +649,7 @@ export default function DashboardSPA() {
             {activeTab === "chat" && `Chat s ${activeChatTarget ? activeChatTarget.name : "..."}`}
             {activeTab === "network" && "Síťová detekce & Distribuovaný cluster"}
             {activeTab === "models" && "Správa a načítání modelů v clusteru"}
+            {activeTab === "comfyui" && "ComfyUI Nativní Editor"}
             {activeTab === "settings" && "Sjednocené nastavení"}
           </h2>
 
@@ -1482,6 +1487,58 @@ export default function DashboardSPA() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* --- VIEW: ComfyUI --- */}
+          {activeTab === "comfyui" && (
+            <div className="h-full flex flex-col -m-8 bg-zinc-950 animate-in fade-in duration-500">
+              <div className="flex-shrink-0 px-8 py-4 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600/20 to-blue-600/20 flex items-center justify-center border border-indigo-500/30">
+                    <span className="text-xl">🎨</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-zinc-100">ComfyUI Editor</h3>
+                    <p className="text-xs text-zinc-500">Tvorba Flows & Generování</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Uzel s ComfyUI:</span>
+                  <select
+                    className="px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-800 focus:outline-none focus:border-indigo-500 text-sm font-semibold text-indigo-400"
+                    value={selectedComfyNodeIP || ""}
+                    onChange={(e) => setSelectedComfyNodeIP(e.target.value)}
+                  >
+                    <option value="" disabled>Vyberte zařízení...</option>
+                    {clusterStatus?.nodes
+                      ?.filter((n: any) => n.services?.includes("comfyui"))
+                      .map((node: any) => (
+                        <option key={node.id} value={node.ip}>
+                          {node.name} ({node.ip})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex-1 w-full bg-black relative">
+                {!selectedComfyNodeIP ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500">
+                    <span className="text-4xl mb-4">🖥️</span>
+                    <h4 className="text-lg font-bold text-zinc-300">Vyberte uzel s běžícím ComfyUI</h4>
+                    <p className="text-sm mt-2">K výběru použijte roletku v pravém horním rohu.</p>
+                  </div>
+                ) : (
+                  <iframe 
+                    src={`http://${selectedComfyNodeIP}:8188`} 
+                    className="w-full h-full border-0"
+                    title="ComfyUI Native Editor"
+                    allow="clipboard-write"
+                  />
+                )}
               </div>
             </div>
           )}
