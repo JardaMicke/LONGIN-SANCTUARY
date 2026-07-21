@@ -73,7 +73,7 @@ class Settings(BaseSettings):
 
     # ── ComfyUI ─────────────────────────────────────────────
     COMFYUI_PRIMARY_URL: str = "http://192.168.1.15:8188"
-    COMFYUI_EXTRA_URLS: list[str] = []
+    COMFYUI_EXTRA_URLS: Any = []
 
     @field_validator("COMFYUI_EXTRA_URLS", mode="before")
     @classmethod
@@ -84,7 +84,7 @@ class Settings(BaseSettings):
 
     # ── Ollama ──────────────────────────────────────────────
     OLLAMA_PRIMARY_URL: str = "http://192.168.1.15:11434"
-    OLLAMA_EXTRA_URLS: list[str] = []
+    OLLAMA_EXTRA_URLS: Any = []
 
     @field_validator("OLLAMA_EXTRA_URLS", mode="before")
     @classmethod
