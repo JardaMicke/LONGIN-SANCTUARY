@@ -6,6 +6,7 @@ services:
     image: postgres:16-alpine
     container_name: longin-sanctuary-postgres
     restart: unless-stopped
+    env_file: ../.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-longin_sanctuary}
       POSTGRES_USER: ${POSTGRES_USER:-sanctuary}
