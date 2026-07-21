@@ -4,7 +4,7 @@ services:
   # ── PostgreSQL — Long-Term Memory ───────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: sanctuary-postgres
+    container_name: longin-sanctuary-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-longin_sanctuary}
@@ -26,7 +26,7 @@ services:
   # ── Redis — Short-Term Memory & Cache ───────────────────────
   redis:
     image: redis:7-alpine
-    container_name: sanctuary-redis
+    container_name: longin-sanctuary-redis
     restart: unless-stopped
     command: >
       redis-server
@@ -48,7 +48,7 @@ services:
   # ── Qdrant — Vector DB for RAG ──────────────────────────────
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: sanctuary-qdrant
+    container_name: longin-sanctuary-qdrant
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
@@ -65,7 +65,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: sanctuary-api
+    container_name: longin-sanctuary-api
     restart: unless-stopped
     env_file: ../.env
     environment:
@@ -93,7 +93,7 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: sanctuary-frontend
+    container_name: longin-sanctuary-frontend
     restart: unless-stopped
     env_file: ../.env
     environment:
