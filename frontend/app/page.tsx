@@ -1155,7 +1155,7 @@ export default function DashboardSPA() {
                             Žádné aktivní žádosti o připojení ze sítě.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
