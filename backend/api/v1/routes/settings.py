@@ -25,6 +25,8 @@ async def get_all_settings():
             ollama_url=settings.OLLAMA_PRIMARY_URL,
             exo_enabled=settings.EXO_ENABLED,
             exo_url=settings.EXO_API_URL,
+            lmstudio_enabled=settings.LMSTUDIO_ENABLED,
+            lmstudio_url=settings.LMSTUDIO_PRIMARY_URL,
         ),
         image=ImageSettings(
             default_model=settings.DEFAULT_IMAGE_MODEL,
@@ -63,6 +65,7 @@ async def get_all_settings():
 @router.get("/models/available")
 async def get_available_models():
     """List all LLM models available across all nodes."""
-    client = OllamaClient(settings.OLLAMA_PRIMARY_URL)
-    local_models = await client.list_models()
-    return {"models": local_models, "source": settings.OLLAMA_PRIMARY_URL}
+    from core.inference.model_manager import ModelManager
+    manager = ModelManager()
+    all_models = await manager.list_network_models()
+    return {"models": all_models, "source": "cluster"}

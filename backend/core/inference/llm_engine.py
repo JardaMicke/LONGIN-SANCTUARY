@@ -98,7 +98,40 @@ class LLMEngine:
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_message})
 
-        # 5. Stream from Ollama
+        # 5. Stream from LM Studio or Ollama
+        if model.startswith("lmstudio/"):
+            real_model = model.replace("lmstudio/", "")
+            lmstudio_url = settings.LMSTUDIO_PRIMARY_URL
+            payload = {
+                "model": real_model,
+                "messages": messages,
+                "stream": True,
+                "temperature": settings.DEFAULT_TEMPERATURE,
+                "max_tokens": settings.DEFAULT_MAX_TOKENS,
+            }
+            async with httpx.AsyncClient(timeout=300) as client:
+                async with client.stream(
+                    "POST",
+                    f"{lmstudio_url}/v1/chat/completions",
+                    json=payload,
+                ) as response:
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        if line.startswith("data: "):
+                            data_str = line[6:].strip()
+                            if data_str == "[DONE]":
+                                break
+                            try:
+                                import json
+                                chunk_data = json.loads(data_str)
+                                chunk = chunk_data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                if chunk:
+                                    yield chunk
+                            except Exception as e:
+                                logger.warning(f"LM Studio stream parse error: {e}")
+            return
+
         ollama_url = settings.OLLAMA_PRIMARY_URL
         payload = {
             "model": model,

@@ -93,6 +93,18 @@ class Settings(BaseSettings):
             return [u.strip() for u in v.split(",")]
         return v or []
 
+    # ── LM Studio ───────────────────────────────────────────
+    LMSTUDIO_PRIMARY_URL: str = "http://localhost:1234"
+    LMSTUDIO_ENABLED: bool = False
+    LMSTUDIO_EXTRA_URLS: Any = []
+
+    @field_validator("LMSTUDIO_EXTRA_URLS", mode="before")
+    @classmethod
+    def parse_lmstudio_urls(cls, v):
+        if isinstance(v, str) and v:
+            return [u.strip() for u in v.split(",")]
+        return v or []
+
     # ── exo (Distributed LLM) ───────────────────────────────
     EXO_ENABLED: bool = True
     EXO_PORT: int = 5678

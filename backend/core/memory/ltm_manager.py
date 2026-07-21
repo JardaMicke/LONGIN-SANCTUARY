@@ -145,6 +145,25 @@ class LTMManager:
             "Summary:"
         )
 
+        if model_name.startswith("lmstudio/"):
+            real_model = model_name.replace("lmstudio/", "")
+            try:
+                async with httpx.AsyncClient(timeout=60) as client:
+                    resp = await client.post(
+                        f"{settings.LMSTUDIO_PRIMARY_URL}/v1/chat/completions",
+                        json={
+                            "model": real_model,
+                            "messages": [{"role": "user", "content": prompt}],
+                            "stream": False,
+                            "temperature": 0.3
+                        }
+                    )
+                    if resp.status_code == 200:
+                        return resp.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+            except Exception as e:
+                logger.warning(f"Error calling LM Studio for summarization: {e}")
+            return None
+
         try:
             async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
@@ -174,6 +193,31 @@ class LTMManager:
             f"Conversation:\n{conv_text}\n\n"
             "Facts:"
         )
+
+        if model_name.startswith("lmstudio/"):
+            real_model = model_name.replace("lmstudio/", "")
+            try:
+                async with httpx.AsyncClient(timeout=60) as client:
+                    resp = await client.post(
+                        f"{settings.LMSTUDIO_PRIMARY_URL}/v1/chat/completions",
+                        json={
+                            "model": real_model,
+                            "messages": [{"role": "user", "content": prompt}],
+                            "stream": False,
+                            "temperature": 0.1
+                        }
+                    )
+                    if resp.status_code == 200:
+                        response_text = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+                        facts = []
+                        for line in response_text.strip().split("\n"):
+                            clean_line = line.strip().lstrip("- ").strip()
+                            if clean_line:
+                                facts.append(clean_line)
+                        return facts
+            except Exception as e:
+                logger.warning(f"Error calling LM Studio for fact extraction: {e}")
+            return []
 
         try:
             async with httpx.AsyncClient(timeout=60) as client:

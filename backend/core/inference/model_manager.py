@@ -40,6 +40,29 @@ class ModelManager:
                     models.append(m)
             except Exception:
                 pass
+
+        # LM Studio models
+        if settings.LMSTUDIO_ENABLED:
+            try:
+                from services.lmstudio_client import LMStudioClient
+                lm_client = LMStudioClient(settings.LMSTUDIO_PRIMARY_URL)
+                lm_models = await lm_client.list_models()
+                for m in lm_models:
+                    m["node"] = "LM Studio (local)"
+                    models.append(m)
+            except Exception as e:
+                logger.warning(f"Failed to fetch local LM Studio models: {e}")
+
+            for url in settings.LMSTUDIO_EXTRA_URLS:
+                try:
+                    from services.lmstudio_client import LMStudioClient
+                    lm_client = LMStudioClient(url)
+                    lm_models = await lm_client.list_models()
+                    for m in lm_models:
+                        m["node"] = f"LM Studio ({url})"
+                        models.append(m)
+                except Exception:
+                    pass
                 
         return models
 
