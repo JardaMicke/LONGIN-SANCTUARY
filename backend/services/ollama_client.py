@@ -37,3 +37,16 @@ class OllamaClient:
                 return resp.status_code == 200
         except Exception:
             return False
+
+    async def load_model(self, model_name: str) -> bool:
+        """Load a model into memory."""
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                resp = await client.post(
+                    f"{self.base_url}/api/generate",
+                    json={"model": model_name}
+                )
+                return resp.status_code == 200
+        except Exception as e:
+            logger.warning(f"Ollama load_model failed ({self.base_url}): {e}")
+            return False

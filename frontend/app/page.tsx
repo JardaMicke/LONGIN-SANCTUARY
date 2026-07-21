@@ -7,7 +7,7 @@ const API_BASE = "http://localhost:8000/api/v1";
 
 export default function DashboardSPA() {
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "characters" | "chat" | "scenarios" | "network" | "settings"
+    "dashboard" | "characters" | "scenarios" | "chat" | "network" | "models" | "settings"
   >("dashboard");
 
   // --- Global State ---
@@ -98,6 +98,12 @@ export default function DashboardSPA() {
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [selectedChatModel, setSelectedChatModel] = useState<string>("");
 
+  // --- Models State ---
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [nodeModels, setNodeModels] = useState<any[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [loadingModelName, setLoadingModelName] = useState<string | null>(null);
   // --- Scenario Creation Form State ---
   const [scenForm, setScenForm] = useState({
     title: "",
@@ -222,6 +228,45 @@ export default function DashboardSPA() {
         setJoinRequests(data);
       }
     } catch (e) {}
+  };
+
+  const fetchNodeModels = async (nodeId: string, service: string) => {
+    setIsLoadingModels(true);
+    setNodeModels([]);
+    setSelectedNodeId(nodeId);
+    setSelectedService(service);
+    try {
+      const res = await fetch(`${API_BASE}/network/nodes/${nodeId}/models?service=${service}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNodeModels(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  const handleLoadModel = async (nodeId: string, service: string, modelName: string) => {
+    setLoadingModelName(modelName);
+    try {
+      const res = await fetch(`${API_BASE}/network/nodes/${nodeId}/models/load`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelName, service }),
+      });
+      if (res.ok) {
+        alert(`Model ${modelName} byl úspěšně načten na uzlu pro službu ${service}.`);
+      } else {
+        alert(`Chyba při načítání modelu ${modelName}.`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(`Došlo k chybě při komunikaci se serverem.`);
+    } finally {
+      setLoadingModelName(null);
+    }
   };
 
   const fetchSettings = async () => {
@@ -542,6 +587,7 @@ export default function DashboardSPA() {
               { id: "scenarios", label: "Scénáře", icon: "🎭" },
               { id: "chat", label: "Chat", icon: "💬" },
               { id: "network", label: "Lokální Síť", icon: "🌐" },
+              { id: "models", label: "Modely", icon: "🧠" },
               { id: "settings", label: "Nastavení", icon: "⚙️" },
             ].map((item) => (
               <button
@@ -598,6 +644,7 @@ export default function DashboardSPA() {
             {activeTab === "scenarios" && "Komplexní scénáře & Roleplay"}
             {activeTab === "chat" && `Chat s ${activeChatTarget ? activeChatTarget.name : "..."}`}
             {activeTab === "network" && "Síťová detekce & Distribuovaný cluster"}
+            {activeTab === "models" && "Správa a načítání modelů v clusteru"}
             {activeTab === "settings" && "Sjednocené nastavení"}
           </h2>
 
@@ -1303,6 +1350,138 @@ export default function DashboardSPA() {
                   schválení master stáhne a nakonfiguruje Ollama i ComfyUI, a zařízení se stane
                   aktivním workerem v clusteru pro běh LLM modelů a generování.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* --- VIEW: Settings --- */}
+          {/* --- VIEW: Models --- */}
+          {activeTab === "models" && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="p-8 rounded-3xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-xl">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-600/20 to-purple-600/20 flex items-center justify-center border border-fuchsia-500/30">
+                    <span className="text-2xl">🧠</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-zinc-100">Síťové uzly a modely</h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Vyberte zařízení v clusteru a službu pro načtení modelu do paměti.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Nodes List */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+                      Zařízení v clusteru
+                    </h4>
+                    {clusterStatus?.nodes?.map((node: any) => {
+                      const hasOllama = node.services?.includes("ollama");
+                      const hasLmStudio = node.services?.includes("lmstudio");
+                      return (
+                        <div key={node.id} className="p-5 rounded-2xl bg-zinc-950/50 border border-zinc-800/80">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h5 className="font-bold text-zinc-200">{node.name}</h5>
+                              <p className="text-xs text-zinc-500 font-mono mt-0.5">{node.ip}</p>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              node.status === 'online' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                              'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            }`}>
+                              {node.status}
+                            </span>
+                          </div>
+                          
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => hasOllama && fetchNodeModels(node.id, "ollama")}
+                              disabled={!hasOllama || node.status !== 'online'}
+                              className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                                selectedNodeId === node.id && selectedService === "ollama"
+                                  ? "bg-purple-900/30 border-purple-500/50 text-purple-300"
+                                  : hasOllama && node.status === 'online'
+                                  ? "bg-zinc-900 border-zinc-800 hover:border-purple-500/30 hover:bg-zinc-800 cursor-pointer text-zinc-300"
+                                  : "bg-zinc-950 border-zinc-900 opacity-50 cursor-not-allowed text-zinc-600"
+                              }`}
+                            >
+                              <span className="text-lg mb-1">🦙</span>
+                              <span className="text-xs font-semibold">Ollama</span>
+                              <span className="text-[10px] mt-1 opacity-70">{hasOllama ? "Aktivní" : "Není"}</span>
+                            </button>
+
+                            <button
+                              onClick={() => hasLmStudio && fetchNodeModels(node.id, "lmstudio")}
+                              disabled={!hasLmStudio || node.status !== 'online'}
+                              className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                                selectedNodeId === node.id && selectedService === "lmstudio"
+                                  ? "bg-fuchsia-900/30 border-fuchsia-500/50 text-fuchsia-300"
+                                  : hasLmStudio && node.status === 'online'
+                                  ? "bg-zinc-900 border-zinc-800 hover:border-fuchsia-500/30 hover:bg-zinc-800 cursor-pointer text-zinc-300"
+                                  : "bg-zinc-950 border-zinc-900 opacity-50 cursor-not-allowed text-zinc-600"
+                              }`}
+                            >
+                              <span className="text-lg mb-1">🟣</span>
+                              <span className="text-xs font-semibold">LM Studio</span>
+                              <span className="text-[10px] mt-1 opacity-70">{hasLmStudio ? "Aktivní" : "Není"}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(!clusterStatus?.nodes || clusterStatus.nodes.length === 0) && (
+                      <p className="text-sm text-zinc-500 italic">Žádné uzly v clusteru.</p>
+                    )}
+                  </div>
+
+                  {/* Models List for Selected Node/Service */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+                      Dostupné modely
+                      {selectedService && ` (${selectedService === 'ollama' ? 'Ollama' : 'LM Studio'})`}
+                    </h4>
+                    
+                    {!selectedNodeId ? (
+                      <div className="flex flex-col items-center justify-center h-48 rounded-2xl bg-zinc-950/30 border border-zinc-800/30 border-dashed text-zinc-500">
+                        <span className="text-2xl mb-2">👈</span>
+                        <p className="text-sm">Vyberte službu na některém uzlu</p>
+                      </div>
+                    ) : isLoadingModels ? (
+                      <div className="flex flex-col items-center justify-center h-48 rounded-2xl bg-zinc-950/30 border border-zinc-800/30 text-purple-400">
+                        <div className="w-8 h-8 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin mb-3"></div>
+                        <p className="text-sm animate-pulse">Načítám seznam modelů...</p>
+                      </div>
+                    ) : nodeModels.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-48 rounded-2xl bg-zinc-950/30 border border-zinc-800/30 text-zinc-500">
+                        <p className="text-sm">Žádné modely nebyly nalezeny.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3 max-h-[600px] overflow-y-auto pr-2">
+                        {nodeModels.map((m, idx) => (
+                          <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl bg-zinc-900 border border-zinc-800 gap-4">
+                            <div>
+                              <p className="text-sm font-bold text-zinc-200">{m.name}</p>
+                              {m.details && (
+                                <p className="text-xs text-zinc-500 mt-1">
+                                  {m.details.format} • {m.details.family} • {m.details.parameter_size} • {m.details.quantization_level}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleLoadModel(selectedNodeId, selectedService!, m.name)}
+                              disabled={loadingModelName === m.name}
+                              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-950 text-purple-400 hover:bg-purple-900 border border-purple-900/50 text-xs font-semibold transition-all"
+                            >
+                              {loadingModelName === m.name ? "Načítám..." : "Načíst a použít"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
