@@ -76,7 +76,7 @@ services:
       - "${API_PORT:-8000}:8000"
     volumes:
       - ../backend:/app
-      - ../models:/app/models
+      - ../model_weights:/app/model_weights
       - ../output:/app/output
     depends_on:
       postgres:

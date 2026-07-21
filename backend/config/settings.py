@@ -141,10 +141,10 @@ class Settings(BaseSettings):
     NODE_NAME: str = "CORE-DT"
 
     # ── Paths ───────────────────────────────────────────────
-    MODELS_PATH: str = "./models"
+    MODELS_PATH: str = "./model_weights"
     OUTPUT_PATH: str = "./output"
     COMFYUI_PATH: str = "./comfyui"
-    LORA_PATH: str = "./models/loras"
+    LORA_PATH: str = "./model_weights/loras"
 
 
 @lru_cache
