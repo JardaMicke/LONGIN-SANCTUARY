@@ -45,13 +45,14 @@ async def send_message(
         from core.characters.character_manager import CharacterManager
         from config.settings import settings
         char = await CharacterManager(db).get(character_id)
-        model_name = char.llm_model if char and char.llm_model else settings.DEFAULT_LLM_MODEL
+        model_name = chat_request.model if chat_request.model else (char.llm_model if char and char.llm_model else settings.DEFAULT_LLM_MODEL)
 
         async for chunk in engine.stream_response(
             character_id=character_id,
             user_message=chat_request.message,
             session_id=chat_request.session_id,
             db=db,
+            model_override=model_name,
         ):
             full_response += chunk
             yield f"data: {chunk}\n\n"

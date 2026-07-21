@@ -3,7 +3,7 @@ LLM Engine — streaming inference via Ollama / exo.
 Full implementation in Phase 5.
 """
 
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from uuid import UUID
 
 import httpx
@@ -54,6 +54,7 @@ class LLMEngine:
         user_message: str,
         session_id: str,
         db: AsyncSession,
+        model_override: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream response tokens from LLM for a character."""
         # 1. Load character
@@ -63,7 +64,7 @@ class LLMEngine:
             yield f"[Error: Character {character_id} not found]"
             return
 
-        model = character.llm_model or settings.DEFAULT_LLM_MODEL
+        model = model_override or character.llm_model or settings.DEFAULT_LLM_MODEL
         system_prompt = self._build_system_prompt(character, [])
 
         # 2. Load conversation history

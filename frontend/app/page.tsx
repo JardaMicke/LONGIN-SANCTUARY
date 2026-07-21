@@ -94,6 +94,9 @@ export default function DashboardSPA() {
   });
   const [refFiles, setRefFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
+  const [selectedChatModel, setSelectedChatModel] = useState<string>("");
 
   // --- Scenario Creation Form State ---
   const [scenForm, setScenForm] = useState({
@@ -139,9 +142,23 @@ export default function DashboardSPA() {
         fetchJoinRequests(),
         fetchSettings(),
         checkAgeStatus(),
+        fetchAvailableModels(),
       ]);
     } catch (err) {
       console.error("Failed to load initial data", err);
+    }
+  };
+
+  const fetchAvailableModels = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/settings/models/available`);
+      if (res.ok) {
+        const data = await res.json();
+        const names = data.models.map((m: any) => m.name);
+        setAvailableModels(names);
+      }
+    } catch (e) {
+      console.error("Failed to fetch available models", e);
     }
   };
 
@@ -225,6 +242,28 @@ export default function DashboardSPA() {
     alert("Nastavení úspěšně uložena a sjednocena!");
   };
 
+  const startEditCharacter = (char: any) => {
+    setEditingCharacterId(char.id);
+    setCharForm({
+      name: char.name,
+      age: char.persona?.age || 20,
+      gender: char.persona?.gender || "Female",
+      race: char.persona?.race || "Human",
+      backstory: char.persona?.backstory || "",
+      personality: char.persona?.personality || "",
+      speech_style: char.persona?.speech_style || "",
+      nsfw_enabled: char.nsfw_enabled || false,
+      llm_model: char.llm_model || "",
+    });
+    // Scroll to the character creation form
+    const formElement = document.getElementById("character-form-container");
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const handleCreateCharacter = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -246,14 +285,20 @@ export default function DashboardSPA() {
         content_level: charForm.nsfw_enabled ? "permissive" : "moderate",
       };
 
-      const res = await fetch(`${API_BASE}/characters/`, {
-        method: "POST",
+      const url = editingCharacterId 
+        ? `${API_BASE}/characters/${editingCharacterId}`
+        : `${API_BASE}/characters/`;
+        
+      const method = editingCharacterId ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        const newChar = await res.json();
+        const charData = await res.json();
         // If reference files selected, upload them
         if (refFiles && refFiles.length > 0) {
           setIsUploading(true);
@@ -261,7 +306,7 @@ export default function DashboardSPA() {
           for (let i = 0; i < refFiles.length; i++) {
             formData.append("files", refFiles[i]);
           }
-          await fetch(`${API_BASE}/characters/${newChar.id}/reference-images`, {
+          await fetch(`${API_BASE}/characters/${charData.id}/reference-images`, {
             method: "POST",
             body: formData,
           });
@@ -281,11 +326,14 @@ export default function DashboardSPA() {
           nsfw_enabled: false,
           llm_model: "",
         });
+        setEditingCharacterId(null);
         fetchCharacters();
-        alert("Postava úspěšně vytvořena!");
+        alert(editingCharacterId ? "Postava úspěšně upravena!" : "Postava úspěšně vytvořena!");
+      } else {
+        alert(editingCharacterId ? "Úprava postavy selhala." : "Vytvoření postavy selhalo.");
       }
     } catch (err) {
-      alert("Vytvoření postavy selhalo.");
+      alert(editingCharacterId ? "Úprava postavy selhala." : "Vytvoření postavy selhalo.");
       setIsUploading(false);
     }
   };
@@ -329,6 +377,12 @@ export default function DashboardSPA() {
     setActiveChatTarget({ type, id, name });
     setChatSessionId(Math.random().toString(36).substring(7));
     setChatMessages([]);
+    if (type === "character") {
+      const char = characters.find((c) => c.id === id);
+      setSelectedChatModel(char?.llm_model || unifiedSettings?.llm?.default_model || "");
+    } else {
+      setSelectedChatModel("");
+    }
     setActiveTab("chat");
   };
 
@@ -356,6 +410,7 @@ export default function DashboardSPA() {
         body: JSON.stringify({
           message: userMsg,
           session_id: chatSessionId,
+          model: selectedChatModel || undefined,
         }),
       });
 
@@ -702,8 +757,10 @@ export default function DashboardSPA() {
           {activeTab === "characters" && (
             <div className="space-y-8">
               {/* Character creation form */}
-              <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
-                <h3 className="text-lg font-bold mb-4">🧬 Vytvořit novou postavu</h3>
+              <div id="character-form-container" className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800">
+                <h3 className="text-lg font-bold mb-4">
+                  {editingCharacterId ? `🧬 Upravit postavu: ${charForm.name}` : "🧬 Vytvořit novou postavu"}
+                </h3>
                 <form onSubmit={handleCreateCharacter} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
@@ -794,6 +851,24 @@ export default function DashboardSPA() {
                     />
                   </div>
 
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
+                      LLM Model pro tuto postavu (Override)
+                    </label>
+                    <select
+                      value={charForm.llm_model}
+                      onChange={(e) => setCharForm({ ...charForm, llm_model: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 focus:outline-none focus:border-purple-500 text-sm text-zinc-300"
+                    >
+                      <option value="">Výchozí model (podle globálního nastavení)</option>
+                      {availableModels.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
                       Upload referenčních obrázků (20+ pro LoRA)
@@ -819,13 +894,35 @@ export default function DashboardSPA() {
                     </label>
                   </div>
 
-                  <div className="md:col-span-2 flex justify-end">
+                  <div className="md:col-span-2 flex justify-end gap-2">
+                    {editingCharacterId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCharacterId(null);
+                          setCharForm({
+                            name: "",
+                            age: 20,
+                            gender: "Female",
+                            race: "Human",
+                            backstory: "",
+                            personality: "",
+                            speech_style: "",
+                            nsfw_enabled: false,
+                            llm_model: "",
+                          });
+                        }}
+                        className="px-6 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold transition-all duration-300"
+                      >
+                        Zrušit
+                      </button>
+                    )}
                     <button
                       type="submit"
                       disabled={isUploading}
                       className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-sm font-semibold transition-all duration-300 shadow-md shadow-purple-500/15"
                     >
-                      {isUploading ? "Nahrávání & Zpracování..." : "Vytvořit postavu"}
+                      {isUploading ? "Nahrávání & Zpracování..." : (editingCharacterId ? "Uložit změny" : "Vytvořit postavu")}
                     </button>
                   </div>
                 </form>
@@ -863,6 +960,12 @@ export default function DashboardSPA() {
                           className="flex-1 px-4 py-2.5 rounded-xl bg-purple-950 text-purple-400 hover:bg-purple-900 border border-purple-900/35 text-xs font-semibold transition-all duration-200"
                         >
                           Chatovat 💬
+                        </button>
+                        <button
+                          onClick={() => startEditCharacter(char)}
+                          className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700 text-xs font-semibold transition-all duration-200"
+                        >
+                          Upravit ✏️
                         </button>
                       </div>
                     </div>
@@ -1029,6 +1132,33 @@ export default function DashboardSPA() {
             <div className="h-full flex flex-col justify-between bg-zinc-950 -m-8">
               {activeChatTarget ? (
                 <>
+                  {/* Chat Header Bar */}
+                  <div className="px-8 py-4 border-b border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
+                    <div>
+                      <h4 className="font-bold text-lg text-zinc-100">{activeChatTarget.name}</h4>
+                      <p className="text-xs text-zinc-500">
+                        {activeChatTarget.type === "character" ? "Přímý rozhovor" : "Hraní scénáře"}
+                      </p>
+                    </div>
+                    {activeChatTarget.type === "character" && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500 font-mono">Model:</span>
+                        <select
+                          value={selectedChatModel}
+                          onChange={(e) => setSelectedChatModel(e.target.value)}
+                          className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-purple-500 cursor-pointer"
+                        >
+                          <option value="">Globální výchozí ({unifiedSettings.llm.default_model})</option>
+                          {availableModels.map((m) => (
+                            <option key={m} value={m}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Chat messages viewport */}
                   <div className="flex-1 overflow-y-auto p-8 space-y-4">
                     <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50 text-xs text-zinc-500 text-center font-mono">
@@ -1188,8 +1318,7 @@ export default function DashboardSPA() {
                     <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">
                       Výchozí Model
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={unifiedSettings.llm.default_model}
                       onChange={(e) =>
                         setUnifiedSettings({
@@ -1197,8 +1326,27 @@ export default function DashboardSPA() {
                           llm: { ...unifiedSettings.llm, default_model: e.target.value },
                         })
                       }
-                      className="w-full px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-sm"
-                    />
+                      className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-300 focus:outline-none focus:border-purple-500"
+                    >
+                      {availableModels.length === 0 ? (
+                        <option value={unifiedSettings.llm.default_model}>
+                          {unifiedSettings.llm.default_model || "Žádné modely nenalezeny"}
+                        </option>
+                      ) : (
+                        <>
+                          {!availableModels.includes(unifiedSettings.llm.default_model) && unifiedSettings.llm.default_model && (
+                            <option value={unifiedSettings.llm.default_model}>
+                              {unifiedSettings.llm.default_model} (Aktuální)
+                            </option>
+                          )}
+                          {availableModels.map((m) => (
+                            <option key={m} value={m}>
+                              {m}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">
