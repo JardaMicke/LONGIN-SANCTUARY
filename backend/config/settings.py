@@ -4,7 +4,7 @@ Loaded from environment variables / .env file
 """
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Any
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # ── API ─────────────────────────────────────────────────
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
-    ALLOWED_ORIGINS: list[str] = [
+    ALLOWED_ORIGINS: Any = [
         "http://localhost:3000",
         "http://192.168.1.15:3000",
         "http://192.168.1.18:3000",
