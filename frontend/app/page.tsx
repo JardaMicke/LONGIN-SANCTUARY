@@ -141,7 +141,7 @@ export default function DashboardSPA() {
         checkAgeStatus(),
       ]);
     } catch (err) {
-      logger.error("Failed to load initial data", err);
+      console.error("Failed to load initial data", err);
     }
   };
 
@@ -423,7 +423,7 @@ export default function DashboardSPA() {
         }
       }
     } catch (err) {
-      logger.error("Chat error", err);
+      console.error("Chat error", err);
       setChatMessages((prev) => [
         ...prev,
         { role: "system", content: "Generování selhalo. Zkontrolujte připojení." },
