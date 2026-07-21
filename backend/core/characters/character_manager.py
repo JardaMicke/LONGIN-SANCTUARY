@@ -142,9 +142,10 @@ async def _bg_process_reference_images(
         if job:
             job.progress = 30
 
-        # Extract face embeddings
+        import asyncio
+        # Extract face embeddings in a background thread to prevent blocking the event loop
         pipeline = FaceEmbeddingPipeline()
-        avg_embedding = pipeline.extract_from_multiple(images)
+        avg_embedding = await asyncio.to_thread(pipeline.extract_from_multiple, images)
 
         if avg_embedding is None:
             raise ValueError("No faces detected in any uploaded images")
@@ -152,8 +153,8 @@ async def _bg_process_reference_images(
         if job:
             job.progress = 60
 
-        # Save embedding
-        emb_path = pipeline.save_embedding(character_id, avg_embedding)
+        # Save embedding in a background thread
+        emb_path = await asyncio.to_thread(pipeline.save_embedding, character_id, avg_embedding)
 
         if job:
             job.progress = 80
